@@ -4,7 +4,7 @@
 // @source       https://github.com/Dj-Frixz/userscripts
 // @downloadURL  https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTokViewer.js
 // @updateURL    https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTokViewer.js
-// @version      1.1
+// @version      1.2
 // @description  Lets you open tiktok links on the browser without an account.
 // @author       Dj Frixz
 // @match        https://www.tiktok.com/login?redirect_url=*
