@@ -1,6 +1,7 @@
 // ==UserScript==
 // @name         TikTok Viewer
 // @namespace    Dj Frixz
+// @source       https://github.com/Dj-Frixz/userscripts
 // @downloadURL  https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTokViewer.js
 // @updateURL    https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTokViewer.js
 // @version      1.1
