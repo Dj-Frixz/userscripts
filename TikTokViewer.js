@@ -1,7 +1,9 @@
 // ==UserScript==
 // @name         TikTok Viewer
-// @namespace    http://tampermonkey.net/
-// @version      1.0
+// @namespace    Dj Frixz
+// @downloadURL  https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTokViewer.js
+// @updateURL    https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTokViewer.js
+// @version      1.1
 // @description  Lets you open tiktok links on the browser without an account.
 // @author       Dj Frixz
 // @match        https://www.tiktok.com/login?redirect_url=*
