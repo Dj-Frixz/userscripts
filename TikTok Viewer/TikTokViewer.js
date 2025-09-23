@@ -4,7 +4,7 @@
 // @source       https://github.com/Dj-Frixz/userscripts
 // @downloadURL  https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
 // @updateURL    https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
-// @version      1.3.1 pre-release
+// @version      1.3.2 pre-release
 // @description  Lets you open tiktok links on the browser without an account.
 // @author       Dj Frixz
 // @match        https://www.tiktok.com/login?redirect_url=*
@@ -44,24 +44,35 @@
                 console.log("TikTok Viewer: html has loaded.");
                 const style = document.createElement("style");
                 style.textContent = `
+                .comment-panel-container {
+                    user-select: none; -webkit-user-select: none; pointer-events: none;
+                    inset: 0; position: fixed; z-index: 3001; overflow: hidden;
+                }
                 .comment-backdrop {
-                    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-                    display: none; z-index: 9998;
-                }
+                    inset: 0; position: absolute; opacity: 0;
+                    transition: opacity 0.3s; background: rgba(0, 0, 0, 0.5);
+                    box-shadow: rgba(0, 0, 0, 0.06) 0px 2px 8px;
+                } .darkened {pointer-events: auto; -webkit-user-select: auto; opacity: 1;}
                 .comment-panel {
-                    position: fixed; left: 0; right: 0; bottom: 0;
-                    height: 60%; background: #fff; border-radius: 16px 16px 0 0;
-                    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
-                    transition: transform 0.3s ease;
-                    transform: translateY(100%);
-                    z-index: 9999; display: flex; flex-direction: column;
-                }
+                    pointer-events: auto; -webkit-user-select: none; position: absolute;
+                    left: 0px; bottom: 0px; width: 100%; max-height: 73vh; background: #fff;
+                    transform: none; border-radius: 12px 12px 0px 0px; transition: transform 0.3s;
+                    display: flex; flex-direction: column; transform: translateY(100%);
+                } .opened {transform: translateY(0);}
                 .comment-header {
-                    padding: 8px; border-bottom: 1px solid #ddd;
-                    display: flex; justify-content: space-between; align-items: center;
+                    padding: 16px 20px; border-bottom: medium; font-weight: 500;
+                    line-height: 24px; display: flex; -moz-box-pack: center;
+                    justify-content: center; -moz-box-align: center; align-items: center;
+                }
+                .button-close {
+                    position: absolute; top: 16px; width: 24px; height: 24px; z-index: 2;
+                    display: flex; -moz-box-pack: center; justify-content: center;
+                    -moz-box-align: center; align-items: center; right: 16px;
                 }
                 .comment-list {
-                    flex: 1; overflow-y: auto; padding: 8px;
+                    flex: 1; overflow-y: auto; padding: 0px; overflow: auto;
+                    max-height: calc(-53px + 73vh); scrollbar-width: thin;
+                    scrollbar-color: #ccc transparent;
                 }
                 .comment {
                     display: flex; align-items: flex-start; margin-bottom: 12px;
@@ -82,6 +93,9 @@
                 document.head.appendChild(style); // adding styles for the comments panel
 
                 // creating the comments panel elements
+                const container = document.createElement("div");
+                container.className = "comment-panel-container";
+
                 const backdrop = document.createElement("div");
                 backdrop.className = "comment-backdrop";
 
@@ -90,45 +104,40 @@
 
                 const header = document.createElement("div");
                 header.className = "comment-header";
-                header.innerHTML = `<span>Commenti</span><span id="closeComments">✕</span>`;
+                header.innerText = "Comments";
+
+                const closeBtn = document.createElement("div");
+                closeBtn.innerHTML = "&#10005;"; // simpler instead of an svg
+                closeBtn.className = "button-close";
 
                 const list = document.createElement("div");
                 list.className = "comment-list";
 
                 // constructing the panel
+                container.appendChild(backdrop);
+                container.appendChild(panel);
                 panel.appendChild(header);
+                header.appendChild(closeBtn);
                 panel.appendChild(list);
-                document.body.appendChild(backdrop);
-                document.body.appendChild(panel);
+                document.body.appendChild(container);
 
-                let startY = 0, currentY = 0, dragging = false;
-
+                
                 function openPanel() {
-                    backdrop.style.display = "block";
-                    panel.style.transform = "translateY(0)";
+                    backdrop.classList.add("darkened");
+                    panel.classList.add("opened");
                 }
-
+                
                 function closePanel() {
-                    panel.removeAttribute("style");
-                    setTimeout(() => {backdrop.style.display = "none"}, 300);
+                    panel.classList.remove("opened");
+                    backdrop.classList.remove("darkened");
                 }
-
-                function addComment(name, text, likes, time, avatar) {
-                    const c = document.createElement("div");
-                    c.className = "comment";
-                    c.innerHTML = `
-                    <img src="${avatar}" alt="Avatar">
-                    <div class="comment-body">
-                    <div class="comment-name">${name} <small>${time}</small></div>
-                    <div class="comment-text">${text}</div>
-                    <div style="font-size:12px;color:#888">${likes} ♥</div>
-                    </div>`;
-                    list.appendChild(c);
-                }
-
+                
                 backdrop.addEventListener("click", closePanel);
-                header.querySelector("#closeComments").addEventListener("click", closePanel);
-
+                closeBtn.addEventListener("click", closePanel);
+                
+                // panel drag to close functionality
+                let startY = 0, currentY = 0, dragging = false;
+                
                 panel.addEventListener("touchstart", e => {
                     if (e.touches.length !== 1) return;
                     dragging = true;
@@ -149,7 +158,20 @@
                     if (currentY - startY > 100) closePanel();
                     else panel.style.transform = "translateY(0)";
                 });
-
+                
+                function addComment(name, text, likes, time, avatar) {
+                    const c = document.createElement("div");
+                    c.className = "comment";
+                    c.innerHTML = `
+                    <img src="${avatar}" alt="Avatar">
+                    <div class="comment-body">
+                    <div class="comment-name">${name} <small>${time}</small></div>
+                    <div class="comment-text">${text}</div>
+                    <div style="font-size:12px;color:#888">${likes} ♥</div>
+                    </div>`;
+                    list.appendChild(c);
+                }
+                
                 GM_xmlhttpRequest({ // getting comments from TikTok API
                     method: "GET",
                     url: `https://www.tiktok.com/api/comment/list/?aid=1988&aweme_id=${videoID}&count=100`,
@@ -186,10 +208,16 @@
                 (async () => {
                     // modifying the comment button to open the custom panel
                     let svg = document.querySelector('svg[aria-label="Comment this post on TikTok"]');
-                    while (!svg) { // wait until the button is loaded
-                        console.log("TikTok Viewer: waiting for the comment button to load...",svg);
-                        await new Promise(r => setTimeout(r, 1000));
+                    let tries = 1;
+                    while (!svg && tries < 10) { // wait until the button is loaded
+                        tries++;
+                        console.log("TikTok Viewer: waiting for the comment button to load...",tries);
+                        await new Promise(r => setTimeout(r, 300)); // retry every ~1/3 second
                         svg = document.querySelector('svg[aria-label="Comment this post on TikTok"]');
+                    }
+                    if (!svg) {
+                        console.warn("TikTok Viewer: comment button not found.");
+                        return;
                     }
                     console.log("TikTok Viewer: comment button found, modifying it.");
                     const btn = svg.parentNode;
