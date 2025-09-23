@@ -4,7 +4,7 @@
 // @source       https://github.com/Dj-Frixz/userscripts
 // @downloadURL  https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
 // @updateURL    https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
-// @version      1.3.3-prerelease
+// @version      1.3.4-prerelease
 // @description  Lets you open tiktok links on the browser without an account.
 // @author       Dj Frixz
 // @match        https://www.tiktok.com/login?redirect_url=*
@@ -44,6 +44,7 @@
                 console.log("TikTok Viewer: html has loaded.");
                 const style = document.createElement("style");
                 style.textContent = `
+                body {font-size: 14px; color: rgb(22, 24, 35); direction: ltr;}
                 .comment-panel-container {
                     user-select: none; -webkit-user-select: none; pointer-events: none;
                     inset: 0; position: fixed; z-index: 3001; overflow: hidden;
@@ -56,8 +57,8 @@
                 .comment-panel {
                     pointer-events: auto; -webkit-user-select: none; position: absolute;
                     left: 0px; bottom: 0px; width: 100%; max-height: 73vh; background: #fff;
-                    transform: none; border-radius: 12px 12px 0px 0px; transition: transform 0.3s;
-                    display: flex; flex-direction: column; transform: translateY(100%);
+                    transform: translateY(100%); border-radius: 12px 12px 0px 0px; display: flex;
+                    flex-direction: column; transition: transform 0.3s;
                 } .opened {transform: translateY(0);}
                 .comment-header {
                     padding: 16px 20px; border-bottom: medium; font-weight: 500;
@@ -66,8 +67,8 @@
                 }
                 .button-close {
                     position: absolute; top: 16px; width: 24px; height: 24px; z-index: 2;
-                    display: flex; -moz-box-pack: center; justify-content: center;
-                    -moz-box-align: center; align-items: center; right: 16px;
+                    display: flex; -moz-box-pack: center; justify-content: center; font-weight: bold;
+                    -moz-box-align: center; align-items: center; right: 16px; font-size: large;
                 }
                 .comment-list {
                     flex: 1; overflow-y: auto; padding: 0px; overflow: auto;
@@ -75,19 +76,24 @@
                     scrollbar-color: #ccc transparent;
                 }
                 .comment {
-                    display: flex; align-items: flex-start; margin-bottom: 12px;
+                    display: flex; align-items: flex-start; margin-bottom: 12px; line-height: 17px;
+                    padding: 8px; padding-inline-start: 12px;
                 }
                 .comment img {
-                    width: 36px; height: 36px; border-radius: 50%; margin-right: 8px;
+                    width: 36px; height: 36px; border-radius: 50%; margin-right: 12px; flex: 0 0 32px;
                 }
                 .comment-body {
                     flex: 1;
                 }
                 .comment-name {
-                    font-weight: bold; font-size: 14px;
+                    color: rgba(22, 24, 35, 0.5); font-size: 13px; font-weight: 700;
                 }
-                .comment-text {
-                    font-size: 13px; margin: 2px 0;
+                .comment-text {font-size: 15px; line-height: 18px; padding-top: 2px;}
+                .comment-time {margin-top: 4px; font-size: 13px; color: #16182380;}
+                .comment-likes {
+                    width: 40px; height: 40px; flex: 0 0 40px; display: flex; flex-direction: column;
+                    -moz-box-pack: center; justify-content: center; -moz-box-align: center;
+                    align-items: center; top: 0px; right: -16px; color: #16182380; font-size: 13px;
                 }
                 `;
                 document.head.appendChild(style); // adding styles for the comments panel
@@ -117,7 +123,7 @@
                 container.appendChild(backdrop);
                 container.appendChild(panel);
                 panel.appendChild(header);
-                header.appendChild(closeBtn);
+                panel.appendChild(closeBtn);
                 panel.appendChild(list);
                 document.body.appendChild(container);
 
@@ -157,18 +163,35 @@
                     if (currentY - startY > 100) closePanel();
                 });
 
-                function addComment(name, text, likes, time, avatar) {
+                const timeAgo = ts => {
+                    const s = Math.floor((Date.now() / 1000 - ts));
+                    const today = new Date();
+                    const day = new Date(ts * 1000);
+                    if (s < 5) return "just now";
+                    return s < 60 ? `${s}s` :
+                           s < 3600 ? `${Math.floor(s / 60)}m` :
+                           s < 86400 ? `${Math.floor(s / 3600)}h` :
+                           s < 2592000 ? `${Math.floor(s / 86400)}d` :
+                           s < 31536000 ? `${today.getUTCMonth() - day.getUTCMonth()}mo` :
+                           `${today.getUTCFullYear() - day.getUTCFullYear()}y`;
+                }
+
+                function addComment(name, text, likes, timestamp, avatar) {
                     const c = document.createElement("div");
                     c.className = "comment";
                     c.innerHTML = `
                     <img src="${avatar}" alt="Avatar">
                     <div class="comment-body">
-                    <div class="comment-name">${name} <small>${time}</small></div>
-                    <div class="comment-text">${text}</div>
-                    <div style="font-size:12px;color:#888">${likes} ♥</div>
-                    </div>`;
+                        <div class="comment-name">${name}</div><p class="comment-text">${text}</p>
+                        <div class=comment-time>${timeAgo(timestamp)}</div>
+                    </div>
+                    <div class="comment-likes"><svg width="20" data-e2e="" height="20" viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M24 9.01703C19.0025 3.74266 11.4674 3.736 6.67302 8.56049C1.77566 13.4886 1.77566 21.4735 6.67302 26.4016L22.5814 42.4098C22.9568 42.7876 23.4674 43 24 43C24.5326 43 25.0432 42.7876 25.4186 42.4098L41.327 26.4016C46.2243 21.4735 46.2243 13.4886 41.327 8.56049C36.5326 3.736 28.9975 3.74266 24 9.01703ZM21.4938 12.2118C17.9849 8.07195 12.7825 8.08727 9.51028 11.3801C6.16324 14.7481 6.16324 20.214 9.51028 23.582L24 38.1627L38.4897 23.582C41.8368 20.214 41.8368 14.7481 38.4897 11.3801C35.2175 8.08727 30.0151 8.07195 26.5062 12.2118L26.455 12.2722L25.4186 13.3151C25.0432 13.6929 24.5326 13.9053 24 13.9053C23.4674 13.9053 22.9568 13.6929 22.5814 13.3151L21.545 12.2722L21.4938 12.2118Z"></path></svg>
+                    ${likes}</div>`;
+                    
                     list.appendChild(c);
                 }
+
+                const KNumbering = n => n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K' : n;
 
                 GM_xmlhttpRequest({ // getting comments from TikTok API
                     method: "GET",
@@ -179,12 +202,13 @@
                             const json = JSON.parse(response.responseText);
                             comments = json.comments || [];
                             console.log(`Found ${comments.length} comments.`);
+                            header.innerText = `${KNumbering(json.total || 0)} Comments`;
                             comments.forEach(c =>
                                 addComment(
                                     c.user?.nickname || "Unknown",
-                                    c.text || "",
+                                    c.text || "<br>",
                                     c.digg_count || 0,
-                                    new Date(c.create_time * 1000).toLocaleString(),
+                                    c.create_time || Date.now() / 1000,
                                     c.user?.avatar_thumb?.url_list?.[0] || 'https://www.tiktok.com/favicon.ico'
                                 )
                             );
@@ -207,7 +231,7 @@
                     // modifying the comment button to open the custom panel
                     let svg = document.querySelector('svg[aria-label="Comment this post on TikTok"]');
                     let tries = 1;
-                    while (!svg && tries < 10) { // wait until the button is loaded
+                    while (!svg && tries < 30) { // wait 9s or until the button is loaded
                         tries++;
                         console.log("TikTok Viewer: waiting for the comment button to load...",tries);
                         await new Promise(r => setTimeout(r, 300)); // retry every ~1/3 second
