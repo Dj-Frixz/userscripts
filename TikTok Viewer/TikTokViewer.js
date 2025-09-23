@@ -4,7 +4,7 @@
 // @source       https://github.com/Dj-Frixz/userscripts
 // @downloadURL  https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
 // @updateURL    https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
-// @version      1.3.2 pre-release
+// @version      1.3.3-prerelease
 // @description  Lets you open tiktok links on the browser without an account.
 // @author       Dj Frixz
 // @match        https://www.tiktok.com/login?redirect_url=*
@@ -121,44 +121,42 @@
                 panel.appendChild(list);
                 document.body.appendChild(container);
 
-                
                 function openPanel() {
                     backdrop.classList.add("darkened");
                     panel.classList.add("opened");
                 }
-                
+
                 function closePanel() {
                     panel.classList.remove("opened");
                     backdrop.classList.remove("darkened");
                 }
-                
+
                 backdrop.addEventListener("click", closePanel);
                 closeBtn.addEventListener("click", closePanel);
-                
+
                 // panel drag to close functionality
                 let startY = 0, currentY = 0, dragging = false;
-                
-                panel.addEventListener("touchstart", e => {
+
+                header.addEventListener("touchstart", e => {
                     if (e.touches.length !== 1) return;
                     dragging = true;
                     startY = e.touches[0].clientY;
                     currentY = startY;
                     panel.style.transition = "none";
                 });
-                panel.addEventListener("touchmove", e => {
+                header.addEventListener("touchmove", e => {
                     if (!dragging) return;
                     currentY = e.touches[0].clientY;
                     let delta = currentY - startY;
                     if (delta > 0) panel.style.transform = `translateY(${delta}px)`;
                 });
-                panel.addEventListener("touchend", () => {
+                header.addEventListener("touchend", () => {
                     if (!dragging) return;
                     dragging = false;
-                    panel.style.transition = "transform 0.3s ease";
+                    panel.removeAttribute("style");
                     if (currentY - startY > 100) closePanel();
-                    else panel.style.transform = "translateY(0)";
                 });
-                
+
                 function addComment(name, text, likes, time, avatar) {
                     const c = document.createElement("div");
                     c.className = "comment";
@@ -171,7 +169,7 @@
                     </div>`;
                     list.appendChild(c);
                 }
-                
+
                 GM_xmlhttpRequest({ // getting comments from TikTok API
                     method: "GET",
                     url: `https://www.tiktok.com/api/comment/list/?aid=1988&aweme_id=${videoID}&count=100`,
