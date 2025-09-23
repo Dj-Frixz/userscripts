@@ -4,7 +4,7 @@
 // @source       https://github.com/Dj-Frixz/userscripts
 // @downloadURL  https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
 // @updateURL    https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
-// @version      1.3.4-prerelease
+// @version      1.3.5-prerelease
 // @description  Lets you open tiktok links on the browser without an account.
 // @author       Dj Frixz
 // @match        https://www.tiktok.com/login?redirect_url=*
@@ -163,9 +163,9 @@
                     if (currentY - startY > 100) closePanel();
                 });
 
-                const timeAgo = ts => {
-                    const s = Math.floor((Date.now() / 1000 - ts));
-                    const today = new Date();
+                const timeAgo = (ts, now) => {
+                    const s = Math.floor(now - ts);
+                    const today = new Date(now * 1000);
                     const day = new Date(ts * 1000);
                     if (s < 5) return "just now";
                     return s < 60 ? `${s}s` :
@@ -175,55 +175,66 @@
                            s < 31536000 ? `${today.getUTCMonth() - day.getUTCMonth()}mo` :
                            `${today.getUTCFullYear() - day.getUTCFullYear()}y`;
                 }
-
-                function addComment(name, text, likes, timestamp, avatar) {
-                    const c = document.createElement("div");
-                    c.className = "comment";
-                    c.innerHTML = `
-                    <img src="${avatar}" alt="Avatar">
+                function addComment(c, now) { // c is the comment object
+                    now = now / 1000;
+                    const comment = document.createElement("div");
+                    const creatorLike = c.is_author_digged ? `&emsp;&#183;&emsp;<span style="color:#000">&#10084;&#65039;</span> by creator` : '';
+                    comment.className = "comment";
+                    comment.innerHTML = `
+                    <img src="${c.user?.avatar_thumb?.url_list?.[0] || 'https://www.tiktok.com/favicon.ico'}" alt="Avatar">
                     <div class="comment-body">
-                        <div class="comment-name">${name}</div><p class="comment-text">${text}</p>
-                        <div class=comment-time>${timeAgo(timestamp)}</div>
+                        <div class="comment-name">${(c.user?.nickname || "Unknown")}</div>
+                        <p class="comment-text">${c.text || "<br>"}</p>
+                        <div class=comment-time>${timeAgo(c.create_time || now, now) + creatorLike}</div>
                     </div>
                     <div class="comment-likes"><svg width="20" data-e2e="" height="20" viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M24 9.01703C19.0025 3.74266 11.4674 3.736 6.67302 8.56049C1.77566 13.4886 1.77566 21.4735 6.67302 26.4016L22.5814 42.4098C22.9568 42.7876 23.4674 43 24 43C24.5326 43 25.0432 42.7876 25.4186 42.4098L41.327 26.4016C46.2243 21.4735 46.2243 13.4886 41.327 8.56049C36.5326 3.736 28.9975 3.74266 24 9.01703ZM21.4938 12.2118C17.9849 8.07195 12.7825 8.08727 9.51028 11.3801C6.16324 14.7481 6.16324 20.214 9.51028 23.582L24 38.1627L38.4897 23.582C41.8368 20.214 41.8368 14.7481 38.4897 11.3801C35.2175 8.08727 30.0151 8.07195 26.5062 12.2118L26.455 12.2722L25.4186 13.3151C25.0432 13.6929 24.5326 13.9053 24 13.9053C23.4674 13.9053 22.9568 13.6929 22.5814 13.3151L21.545 12.2722L21.4938 12.2118Z"></path></svg>
-                    ${likes}</div>`;
+                    ${c.digg_count || "&emsp;"}</div>`;
                     
-                    list.appendChild(c);
+                    list.appendChild(comment);
                 }
 
+                let hasMore = false; // if more comments are available
+                let cursor = 0; // pagination cursor
+                let isLoading = false; // to prevent multiple simultaneous requests
                 const KNumbering = n => n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K' : n;
 
-                GM_xmlhttpRequest({ // getting comments from TikTok API
-                    method: "GET",
-                    url: `https://www.tiktok.com/api/comment/list/?aid=1988&aweme_id=${videoID}&count=100`,
-                    onload: function(response) {
-                        console.log("Response status:", response.status, "(while retrieving comments).")
-                        try {
-                            const json = JSON.parse(response.responseText);
-                            comments = json.comments || [];
-                            console.log(`Found ${comments.length} comments.`);
-                            header.innerText = `${KNumbering(json.total || 0)} Comments`;
-                            comments.forEach(c =>
-                                addComment(
-                                    c.user?.nickname || "Unknown",
-                                    c.text || "<br>",
-                                    c.digg_count || 0,
-                                    c.create_time || Date.now() / 1000,
-                                    c.user?.avatar_thumb?.url_list?.[0] || 'https://www.tiktok.com/favicon.ico'
-                                )
-                            );
-                        } catch(e) {
-                            console.error('Parsing (of comments) failed:', e);
+                function getComments() {
+                    isLoading = true;
+                    GM_xmlhttpRequest({ // getting comments from TikTok API
+                        method: "GET",
+                        url: `https://www.tiktok.com/api/comment/list/?aid=1988&aweme_id=${videoID}&count=40&cursor=${cursor}`,
+                        onload: function(response) {
+                            console.log("Response status:", response.status, "(while retrieving comments).")
+                            try {
+                                const json = JSON.parse(response.responseText);
+                                hasMore = json.has_more;
+                                comments = json.comments || [];
+                                console.log(`Found a total of ${cursor + comments.length} comments.`);
+                                header.innerText = `${KNumbering(json.total || 0)} Comments (${cursor + comments.length} loaded)`;
+                                cursor = json.cursor || 0;
+                                comments.forEach(c => addComment(c, comments?.extra?.now || Date.now()));
+                            } catch(e) {
+                                console.error('Parsing (of comments) failed:', e);
+                            } finally {isLoading = false;}
+                        },
+                        onerror: function(e) {
+                            console.error("Request failed:", e); isLoading = false;
+                        },
+                        onabort: function(e) {
+                            console.error("Request aborted:", e); isLoading = false;
+                        },
+                        ontimeout: function(e) {
+                            console.error("Request timed out:", e); isLoading = false;
                         }
-                    },
-                    onerror: function(e) {
-                        console.error("Request failed:", e);
-                    },
-                    onabort: function(e) {
-                        console.error("Request aborted:", e);
-                    },
-                    ontimeout: function(e) {
-                        console.error("Request timed out:", e);
+                    });
+                }
+                getComments();
+                list.addEventListener("scroll", () => {
+                    if (!isLoading && list.scrollTop + list.clientHeight >= list.scrollHeight - 10) {
+                        if (hasMore) { // more comments available
+                            console.log("Fetching more comments...");
+                            getComments();
+                        }
                     }
                 });
 
