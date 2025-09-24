@@ -4,7 +4,7 @@
 // @source       https://github.com/Dj-Frixz/userscripts
 // @downloadURL  https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
 // @updateURL    https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
-// @version      1.3.7-prerelease
+// @version      1.3.8-prerelease
 // @description  Lets you open tiktok links on the browser without an account.
 // @author       Dj Frixz
 // @match        https://www.tiktok.com/login?redirect_url=*
@@ -21,25 +21,41 @@
     'use strict';
     // looking for a video id in the url
     const match = location.href.match(/(?:video|photo|embed\/v3)(?:\/|%2F)(\d{15,})/); // id is the 1st capturing group, so it's [1]
-
+    
     if (!match) {
-        console.warn("TikTok Viewer: no video ID found.");
+        console.warn("TikTok Viewer: no video ID found."); return;
     }
+    const videoID = match[1] // [0] returns the full match, instead [1] gives the 1st capturing group
 
     // REDIRECTION --- tiktok login page | tiktok mobile preview => content
     // second condition is to redirect while in mobile preview. 768px for phones only, 1024px includes tablets
-    else if (location.pathname === '/login' || (window.matchMedia('(max-width: 1024px)').matches && !location.pathname.startsWith("/embed/v3/"))) {
+    if (location.pathname === '/login' || (window.matchMedia('(max-width: 1024px)').matches && !location.pathname.startsWith("/embed/v3/"))) {
         console.log("TikTok Viewer is redirecting...");
-        const newUrl = "https://www.tiktok.com/embed/v3/" + match[1]; // the video ID (why [1]? read above or below)
+        const newUrl = "https://www.tiktok.com/embed/v3/" + videoID;
         window.location.replace(newUrl);
     }
 
     // INTEGRATIONS
     else if (location.pathname.startsWith("/embed/v3/")) { // for now restricted to v3 only
-        // retrieve comments
-        console.log("TikTok Viewer is getting the comments...");
-        const videoID = match[1] // [0] returns the full match, instead [1] gives the 1st capturing group
-        let comments = [];
+
+        // force every link to stay in the browser
+        document.addEventListener("click", e => {
+            const a = e.target.closest("a");
+            if (!a) return;
+
+            const url = a.href; // const url = decodeURIComponent(a.href);
+            if (!url) return;
+            console.log("TikTok Viewer: clicked link:", url);
+            // if (!url.startsWith("https://www.tiktok.com/")) return; // intercept urls that force open the app
+
+            // const realUrl = url.match(/https:\/\/www\.tiktok\.com\/@[^/]+\/(?:video|photo)\/\d+/);
+            // if (realUrl) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                console.log("Redirecting cleanly to:", url); // realUrl[0]
+                window.location.href = url; // realUrl[0] change the redirect to stay in the browser
+            // }
+        }, true); // capture=true → blocca React prima
 
         // adding comments to the page when the html has loaded (interactive state)
         document.onreadystatechange = function () {
@@ -193,7 +209,7 @@
                     </div>
                     <div class="comment-likes"><svg width="20" data-e2e="" height="20" viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M24 9.01703C19.0025 3.74266 11.4674 3.736 6.67302 8.56049C1.77566 13.4886 1.77566 21.4735 6.67302 26.4016L22.5814 42.4098C22.9568 42.7876 23.4674 43 24 43C24.5326 43 25.0432 42.7876 25.4186 42.4098L41.327 26.4016C46.2243 21.4735 46.2243 13.4886 41.327 8.56049C36.5326 3.736 28.9975 3.74266 24 9.01703ZM21.4938 12.2118C17.9849 8.07195 12.7825 8.08727 9.51028 11.3801C6.16324 14.7481 6.16324 20.214 9.51028 23.582L24 38.1627L38.4897 23.582C41.8368 20.214 41.8368 14.7481 38.4897 11.3801C35.2175 8.08727 30.0151 8.07195 26.5062 12.2118L26.455 12.2722L25.4186 13.3151C25.0432 13.6929 24.5326 13.9053 24 13.9053C23.4674 13.9053 22.9568 13.6929 22.5814 13.3151L21.545 12.2722L21.4938 12.2118Z"></path></svg>
                     ${c.digg_count || "&emsp;"}</div>`;
-                    
+
                     list.appendChild(comment);
                 }
 
@@ -212,10 +228,10 @@
                             try {
                                 const json = JSON.parse(response.responseText);
                                 hasMore = json.has_more;
-                                comments = json.comments || [];
-                                console.log(`Found a total of ${cursor + comments.length} comments.`);
-                                header.innerText = `${KNumbering(json.total || 0)} Comments (${cursor + comments.length} loaded)`;
-                                cursor = json.cursor || 0;
+                                const comments = json.comments || []; const n = cursor + comments.length;
+                                console.log(`Found a total of ${n} comments.`);
+                                header.innerText = `${KNumbering(json.total || 0)} Comments (${n} loaded)`;
+                                cursor = json.cursor || n;
                                 comments.forEach(c => addComment(c, comments?.extra?.now || Date.now()));
                             } catch(e) {
                                 console.error('Parsing (of comments) failed:', e);
