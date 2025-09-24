@@ -4,7 +4,7 @@
 // @source       https://github.com/Dj-Frixz/userscripts
 // @downloadURL  https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
 // @updateURL    https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
-// @version      1.3.5-prerelease
+// @version      1.3.6-prerelease
 // @description  Lets you open tiktok links on the browser without an account.
 // @author       Dj Frixz
 // @match        https://www.tiktok.com/login?redirect_url=*
@@ -17,16 +17,17 @@
 
 (function() {
     'use strict';
-    const match = location.href.match(/[%v][23][F\/](\d{15,})/); // looking for a video id
+    // looking for a video id in the url
+    const match = location.href.match(/(?:video|photo|embed\/v3)(?:\/|%2F)(\d{15,})/); // id is the 1st capturing group, so it's [1]
 
     if (!match) {
-        console.warn("TikTok Viewer: no video ID found.")
+        console.warn("TikTok Viewer: no video ID found.");
     }
 
     // REDIRECTION --- tiktok login page => content
     else if (location.pathname === '/login') { // location.hostname === 'www.tiktok.com'
         console.log("TikTok Viewer is redirecting...");
-        const newUrl = "https://www.tiktok.com/embed/v3/" + match[1]; // the video ID (why [1]? read below)
+        const newUrl = "https://www.tiktok.com/embed/v3/" + match[1]; // the video ID (why [1]? read above or below)
         window.location.replace(newUrl);
     }
 
