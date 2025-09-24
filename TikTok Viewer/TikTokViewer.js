@@ -4,10 +4,12 @@
 // @source       https://github.com/Dj-Frixz/userscripts
 // @downloadURL  https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
 // @updateURL    https://raw.githubusercontent.com/Dj-Frixz/userscripts/refs/heads/main/TikTok%20Viewer/TikTokViewer.js
-// @version      1.3.6-prerelease
+// @version      1.3.7-prerelease
 // @description  Lets you open tiktok links on the browser without an account.
 // @author       Dj Frixz
 // @match        https://www.tiktok.com/login?redirect_url=*
+// @match        https://www.tiktok.com/@*/video/*
+// @match        https://www.tiktok.com/@*/photo/*
 // @match        https://www.tiktok.com/embed/v3/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
 // @run-at       document-start
@@ -24,8 +26,9 @@
         console.warn("TikTok Viewer: no video ID found.");
     }
 
-    // REDIRECTION --- tiktok login page => content
-    else if (location.pathname === '/login') { // location.hostname === 'www.tiktok.com'
+    // REDIRECTION --- tiktok login page | tiktok mobile preview => content
+    // second condition is to redirect while in mobile preview. 768px for phones only, 1024px includes tablets
+    else if (location.pathname === '/login' || (window.matchMedia('(max-width: 1024px)').matches && !location.pathname.startsWith("/embed/v3/"))) {
         console.log("TikTok Viewer is redirecting...");
         const newUrl = "https://www.tiktok.com/embed/v3/" + match[1]; // the video ID (why [1]? read above or below)
         window.location.replace(newUrl);
