@@ -242,7 +242,7 @@
                                 hasMore = json.has_more;
                                 const comments = json.comments || []; const n = cursor + comments.length;
                                 console.log(`Found a total of ${n} comments.`);
-                                header.innerText = `${KNumbering(json.total || 0)} Comments (${n} loaded)`;
+                                header.innerText = `${KNumbering(json.total || 0)} Comments`;
                                 cursor = json.cursor || n;
                                 comments.forEach(c => addComment(c, comments?.extra?.now || Date.now()));
                             } catch(e) {
